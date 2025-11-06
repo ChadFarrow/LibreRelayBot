@@ -1,18 +1,18 @@
 module.exports = {
   apps: [{
-    name: 'BoostAfterBoost',
-    script: 'boost-after-boost.js',
+    name: 'LibreRelayBot',
+    script: 'libre-relay-bot.js',
     instances: 1,
     autorestart: true,
     watch: false,
     max_memory_restart: '500M',
     env: {
       NODE_ENV: 'production',
-      PORT: 3335
+      PORT: 3336
     },
-    error_file: './logs/boost-after-boost-error.log',
-    out_file: './logs/boost-after-boost-out.log',
-    log_file: './logs/boost-after-boost-combined.log',
+    error_file: './logs/libre-relay-bot-error.log',
+    out_file: './logs/libre-relay-bot-out.log',
+    log_file: './logs/libre-relay-bot-combined.log',
     time: true,
     log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
     merge_logs: true,

@@ -1,13 +1,13 @@
-# BoostAfterBoost - IRC to Nostr Bridge
+# LibreRelayBot - IRC to Nostr Bridge
 
-BoostAfterBoost monitors messages from the BoostAfterBoost bot in the #BowlAfterBowl IRC channel and forwards them to Nostr.
+LibreRelayBot monitors messages from the LibreRelayBot in the #SirLibre IRC channel and forwards them to Nostr.
 
 ## Features
 
-- 🔍 **Selective Monitoring** - Only monitors messages from the BoostAfterBoost bot
+- 🔍 **Selective Monitoring** - Only monitors messages from the LibreRelayBot bot
 - 📖 **Read-Only IRC** - Never posts to IRC, only monitors
 - 📱 **Nostr Integration** - Forwards all monitored messages to Nostr
-- 🛡️ **Single Channel Focus** - Dedicated to #BowlAfterBowl channel only
+- 🛡️ **Single Channel Focus** - Dedicated to #SirLibre channel only
 - ⚡ **Real-time Forwarding** - Messages appear on Nostr immediately
 - 🔧 **Easy Setup** - Simple configuration with environment variables
 
@@ -16,7 +16,7 @@ BoostAfterBoost monitors messages from the BoostAfterBoost bot in the #BowlAfter
 1. **Clone and Install**
    ```bash
    git clone [your-repo-url]
-   cd BoostAfterBoost
+   cd LibreRelayBot
    npm install
    ```
 
@@ -35,7 +35,7 @@ BoostAfterBoost monitors messages from the BoostAfterBoost bot in the #BowlAfter
    # Edit .env with your NOSTR_NSEC
    ```
 
-4. **Run BoostAfterBoost**
+4. **Run LibreRelayBot**
    ```bash
    npm start
    ```
@@ -51,12 +51,12 @@ NOSTR_NSEC=your_nostr_private_key_here
 # IRC Configuration (pre-configured)
 IRC_SERVER=irc.zeronode.net
 IRC_PORT=6667
-IRC_CHANNEL=#BowlAfterBowl
-IRC_NICKNAME=BoostAfterBoost_Reader
-TARGET_BOT=BoostAfterBoost
+IRC_CHANNEL=#SirLibre
+IRC_NICKNAME=LibreRelayBot_Reader
+TARGET_BOT=LibreRelayBot
 
-# Optional: Port (default: 3335)
-PORT=3335
+# Optional: Port (default: 3336)
+PORT=3336
 
 # Optional: Test mode
 TEST_MODE=false
@@ -64,26 +64,26 @@ TEST_MODE=false
 
 ## How It Works
 
-1. **IRC Connection** - Connects to irc.zeronode.net and joins #BowlAfterBowl
+1. **IRC Connection** - Connects to irc.zeronode.net and joins #SirLibre
 2. **Message Monitoring** - Listens to all messages in the channel
-3. **Bot Filtering** - Only processes messages from the BoostAfterBoost bot
+3. **Bot Filtering** - Only processes messages from the LibreRelayBot bot
 4. **Nostr Forwarding** - Forwards filtered messages to configured Nostr relays
 5. **Read-Only Operation** - Never sends messages to IRC, only monitors
 
 ## Post Format
 
-When BoostAfterBoost posts to IRC, the bot forwards to Nostr:
+When LibreRelayBot posts to IRC, the bot forwards to Nostr:
 
 ```
-[Original message from BoostAfterBoost]
+[Original message from LibreRelayBot]
 
-#BowlAfterBowl #BoostAfterBoost
+#SirLibre #LibreRelayBot
 ```
 
 ## Commands
 
 ```bash
-npm start          # Start BoostAfterBoost bridge
+npm start          # Start LibreRelayBot bridge
 npm run dev        # Start with file watching
 npm run health     # Check if running
 npm run status     # Get status info
@@ -95,18 +95,18 @@ npm run pm2:logs   # View PM2 logs
 
 - **Built with**: Node.js, Express, nostr-tools, irc
 - **IRC Server**: irc.zeronode.net (hardcoded)
-- **Channel**: #BowlAfterBowl only
-- **Target Bot**: BoostAfterBoost
+- **Channel**: #SirLibre only
+- **Target Bot**: LibreRelayBot
 - **Relays**: relay.damus.io, relay.nostr.band, nostr.mom, relay.primal.net
-- **Port**: 3335 (configurable)
+- **Port**: 3336 (configurable)
 - **Operation**: Read-only IRC connection
 
 ## Development
 
 1. **Test Mode**: Set `TEST_MODE=true` to log without posting to Nostr
-2. **Local Testing**: Bot runs on `http://localhost:3335`
-3. **Health Check**: `curl http://localhost:3335/health`
-4. **Status**: `curl http://localhost:3335/status`
+2. **Local Testing**: Bot runs on `http://localhost:3336`
+3. **Health Check**: `curl http://localhost:3336/health`
+4. **Status**: `curl http://localhost:3336/status`
 5. **Logs**: Check `logs/` directory or use `npm run pm2:logs`
 
 ## Production Deployment
@@ -129,7 +129,7 @@ npm run pm2:stop
 ### Manual Process Management
 ```bash
 # Check if running
-ps aux | grep -v grep | grep boost-after-boost
+ps aux | grep -v grep | grep libre-relay-bot
 
 # Kill process (replace PID)
 kill [PID]
@@ -138,14 +138,14 @@ kill [PID]
 ## Important Notes
 
 - 📖 **Read-Only**: This bot NEVER posts to IRC
-- 🎯 **Single Purpose**: Only monitors BoostAfterBoost bot messages
-- 📍 **Single Channel**: Only connects to #BowlAfterBowl
+- 🎯 **Single Purpose**: Only monitors LibreRelayBot bot messages
+- 📍 **Single Channel**: Only connects to #SirLibre
 - 🔒 **Security**: `.env` file is gitignored to protect your nsec
-- ⚠️ **Port Conflict**: Runs on port 3335 to avoid conflicts with other bots
+- ⚠️ **Port Conflict**: Runs on port 3336 to avoid conflicts with other bots
 
-## About BowlAfterBowl
+## About SirLibre
 
-BowlAfterBowl is an IRC channel on irc.zeronode.net where the BoostAfterBoost bot operates. This bridge ensures that all BoostAfterBoost messages are also available on Nostr for wider distribution and archival.
+SirLibre is an IRC channel on irc.zeronode.net where the LibreRelayBot operates. This bridge ensures that all LibreRelayBot messages are also available on Nostr for wider distribution and archival.
 
 ## License
 

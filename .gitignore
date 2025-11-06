@@ -17,6 +17,8 @@ yarn-error.log*
 boostbot.log
 boostbot.log.*
 boost-after-boost.log.*
+libre-relay-bot.log
+libre-relay-bot.log.*
 
 # Build output
 dist
