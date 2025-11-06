@@ -32,4 +32,13 @@ boost-sessions.json
 supported-creators.json
 
 # LIT_Bot specific
-convert-key.js 
+convert-key.js
+
+# Logs directory
+logs/
+
+# Service files
+*.service
+
+# Setup scripts
+setup-*.sh 

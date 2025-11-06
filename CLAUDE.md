@@ -16,7 +16,7 @@
 
 ## Nostr Configuration
 - **Environment Variable**: `NOSTR_NSEC`
-- **Default Relays**: relay.damus.io, relay.nostr.band, nostr.mom, relay.primal.net
+- **Default Relays**: relay.damus.io, relay.nostr.band, nostr.mom, relay.primal.net, chadf.nostr1.com
 - **Post Format**: Direct message forwarding with BowlAfterBowl hashtags
 
 ## Key Features

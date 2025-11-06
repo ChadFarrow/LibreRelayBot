@@ -97,7 +97,7 @@ npm run pm2:logs   # View PM2 logs
 - **IRC Server**: irc.zeronode.net (hardcoded)
 - **Channel**: #SirLibre only
 - **Target Bot**: LibreRelayBot
-- **Relays**: relay.damus.io, relay.nostr.band, nostr.mom, relay.primal.net
+- **Relays**: relay.damus.io, relay.nostr.band, nostr.mom, relay.primal.net, chadf.nostr1.com
 - **Port**: 3336 (configurable)
 - **Operation**: Read-only IRC connection
 

@@ -8,7 +8,7 @@ module.exports = {
     max_memory_restart: '500M',
     env: {
       NODE_ENV: 'production',
-      PORT: 3336
+      PORT: 3337
     },
     error_file: './logs/libre-relay-bot-error.log',
     out_file: './logs/libre-relay-bot-out.log',

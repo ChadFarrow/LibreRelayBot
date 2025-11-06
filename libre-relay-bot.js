@@ -42,7 +42,7 @@ class Config {
 
   parseRelays(value) {
     if (!value) {
-      return ['wss://relay.damus.io', 'wss://relay.nostr.band', 'wss://nostr.mom', 'wss://relay.primal.net'];
+      return ['wss://relay.damus.io', 'wss://relay.nostr.band', 'wss://nostr.mom', 'wss://relay.primal.net', 'wss://chadf.nostr1.com'];
     }
     return value.split(',').map(relay => relay.trim()).filter(Boolean);
   }
