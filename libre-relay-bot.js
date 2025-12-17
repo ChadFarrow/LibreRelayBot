@@ -183,11 +183,28 @@ class LibreRelayBotBridge {
   _setupGlobalErrorHandlers() {
     process.on('uncaughtException', (error) => {
       logger.error('Uncaught exception:', { error: error.message, stack: error.stack });
+      
+      // Don't exit immediately on IRC-related errors - try to recover
+      if (error.message && error.message.includes('Cannot read properties of null')) {
+        logger.warn('Detected IRC library null reference error, attempting recovery...');
+        setTimeout(() => {
+          if (this.ircClient) {
+            this.ircClient.resetAndReconnect();
+          }
+        }, 5000);
+        return;
+      }
+      
       this._gracefulShutdown(1);
     });
 
     process.on('unhandledRejection', (reason, promise) => {
       logger.error('Unhandled rejection:', { reason, promise });
+      
+      // Don't crash on promise rejections - log and continue
+      if (reason && typeof reason === 'object' && reason.message) {
+        logger.warn('Handling promise rejection gracefully:', reason.message);
+      }
     });
 
     ['SIGINT', 'SIGTERM'].forEach(signal => {

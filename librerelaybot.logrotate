@@ -1,0 +1,30 @@
+/home/server/LibreRelayBot/*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    notifempty
+    create 0644 server server
+    postrotate
+        # Send HUP signal to reload logs if process is running
+        /usr/bin/pkill -HUP -f "libre-relay-bot.js" || true
+    endscript
+}
+
+/home/server/LibreRelayBot/monitor.log {
+    daily
+    missingok
+    rotate 30
+    compress
+    notifempty
+    create 0644 server server
+}
+
+/home/server/LibreRelayBot/systemd*.log {
+    daily
+    missingok
+    rotate 7
+    compress
+    notifempty
+    create 0644 server server
+}
