@@ -119,8 +119,7 @@ class NostrClient {
       kind: 1,
       content,
       tags: [
-        ['t', 'sirlibre'],
-        ['t', 'librerelaybot'],
+        ['t', 'v4v'],
         ...tags
       ],
       created_at: Math.floor(Date.now() / 1000),
@@ -296,6 +295,65 @@ class LibreRelayBotBridge {
     }
   }
 
+  _formatV4VMessage(rawMessage) {
+    try {
+      // Parse the typical format: "X sats from USER via v4v-music | SHOW | TRACK | MESSAGE"
+      const parts = rawMessage.split(' | ');
+      
+      if (parts.length < 3) {
+        // If parsing fails, return formatted raw message
+        return `${rawMessage}\n\n#V4V\nhttps://v4vmusic.com`;
+      }
+
+      // Extract components
+      const boostInfo = parts[0]; // "100 sats from ericpp via v4v-music"
+      const showInfo = parts[1]; // "119th Edition - Live - Christmas Special" 
+      const trackInfo = parts[2]; // Track title or "None"
+      const messageInfo = parts.length > 3 ? parts[3] : '';
+
+      // Extract sats amount and sender from boost info
+      const boostMatch = boostInfo.match(/(\d+)\s+sats\s+from\s+(\w+)/);
+      const amount = boostMatch ? boostMatch[1] : '';
+      const sender = boostMatch ? boostMatch[2] : '';
+
+      // Format the message
+      let formatted = '';
+      
+      if (amount && sender) {
+        formatted += `⚡ ${amount} sats from ${sender}\n\n`;
+      }
+
+      if (showInfo && showInfo !== 'None') {
+        formatted += `🎵 ${showInfo}\n\n`;
+      }
+
+      if (trackInfo && trackInfo !== 'None') {
+        // Clean up track info - extract title and artist if possible
+        const cleanTrack = trackInfo.replace(/^["']|["']$/g, ''); // Remove quotes
+        formatted += `🎧 ${cleanTrack}\n\n`;
+      }
+
+      // Add boost message if available
+      if (messageInfo) {
+        const cleanMessage = messageInfo.replace(/^["']|["']$/g, '').replace(/sent from v4vmusic\.com.*$/, '');
+        const trimmed = cleanMessage.trim().toLowerCase();
+        if (cleanMessage.trim() && 
+            trimmed !== 'no message' && 
+            !trimmed.startsWith('auto boost')) {
+          formatted += `💬 ${cleanMessage}\n\n`;
+        }
+      }
+
+      // Add V4V info
+      formatted += `#V4V\nhttps://v4vmusic.com`;
+
+      return formatted;
+    } catch (error) {
+      logger.warn('Failed to parse V4V message, using raw format:', error.message);
+      return `${rawMessage}\n\n#V4V\nhttps://v4vmusic.com`;
+    }
+  }
+
   async _postToNostr(message) {
     try {
       const sanitizedMessage = Security.sanitizeMessage(message);
@@ -304,7 +362,10 @@ class LibreRelayBotBridge {
         return;
       }
 
-      const result = await this.nostrClient.publishMessage(sanitizedMessage);
+      // Format the message with V4V layout
+      const formattedMessage = this._formatV4VMessage(sanitizedMessage);
+
+      const result = await this.nostrClient.publishMessage(formattedMessage);
       
       if (result.success) {
         this.stats.successfulPosts++;
