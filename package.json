@@ -25,13 +25,13 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "express": "^4.21.2",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
     "irc": "^0.5.2",
     "nostr-tools": "^2.7.0"
   },
   "devDependencies": {
-    "@types/node": "^20.14.10",
-    "tsx": "^4.16.2"
+    "@types/node": "^25.2.1",
+    "tsx": "^4.21.0"
   }
 }
