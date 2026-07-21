@@ -65,8 +65,7 @@ class Security {
     if (typeof message !== 'string') return '';
     return message
       .replace(/[\x00-\x1F\x7F]/g, '') // Remove control characters
-      .trim()
-      .substring(0, 280); // Limit message length
+      .trim();
   }
 
   static createRateLimiter(maxRequests = 5, windowMs = 60000) {
@@ -297,51 +296,42 @@ class LibreRelayBotBridge {
 
   _formatV4VMessage(rawMessage) {
     try {
-      // Parse the typical format: "X sats from USER via v4v-music | SHOW | TRACK | MESSAGE"
-      const parts = rawMessage.split(' | ');
-      
-      if (parts.length < 3) {
-        // If parsing fails, return formatted raw message
+      // Parse the pipe-delimited format: "BOOST | SHOW | [EPISODE] | [TRACK] | COMMENT"
+      // The number of middle metadata fields varies by source (v4vmusic sends fewer,
+      // Fountain sends more), so the comment is always the LAST segment.
+      const parts = rawMessage.split(' | ').map(p => p.trim());
+
+      if (parts.length < 2) {
+        // Not enough structure to parse — return formatted raw message
         return `${rawMessage}\n\n#V4V\nhttps://v4vmusic.com`;
       }
 
-      // Extract components
-      const boostInfo = parts[0]; // "100 sats from ericpp via v4v-music"
-      const showInfo = parts[1]; // "119th Edition - Live - Christmas Special" 
-      const trackInfo = parts[2]; // Track title or "None"
-      const messageInfo = parts.length > 3 ? parts[3] : '';
+      const boostInfo = parts[0]; // "100 sats from ericpp@fountain.fm via Fountain"
+      const commentInfo = parts[parts.length - 1]; // the boost comment (always last)
+      const middle = parts.slice(1, parts.length - 1); // show / episode / track metadata
 
-      // Extract sats amount and sender from boost info
-      const boostMatch = boostInfo.match(/(\d+)\s+sats\s+from\s+(\w+)/);
-      const amount = boostMatch ? boostMatch[1] : '';
-      const sender = boostMatch ? boostMatch[2] : '';
-
-      // Format the message
       let formatted = '';
-      
-      if (amount && sender) {
-        formatted += `⚡ ${amount} sats from ${sender}\n\n`;
-      }
 
-      if (showInfo && showInfo !== 'None') {
-        formatted += `🎵 ${showInfo}\n\n`;
-      }
+      // ⚡ boost line — keep the whole sender including the app (e.g. "…@fountain.fm via Fountain")
+      formatted += `⚡ ${boostInfo}\n\n`;
 
-      if (trackInfo && trackInfo !== 'None') {
-        // Clean up track info - extract title and artist if possible
-        const cleanTrack = trackInfo.replace(/^["']|["']$/g, ''); // Remove quotes
-        formatted += `🎧 ${cleanTrack}\n\n`;
-      }
-
-      // Add boost message if available
-      if (messageInfo) {
-        const cleanMessage = messageInfo.replace(/^["']|["']$/g, '').replace(/sent from v4vmusic\.com.*$/, '');
-        const trimmed = cleanMessage.trim().toLowerCase();
-        if (cleanMessage.trim() && 
-            trimmed !== 'no message' && 
-            !trimmed.startsWith('auto boost')) {
-          formatted += `💬 ${cleanMessage}\n\n`;
+      // Middle metadata fields, each on its own line with a distinct emoji
+      const metaEmojis = ['🎵', '🎧', '🎶'];
+      middle.forEach((field, i) => {
+        const clean = field.replace(/^["']|["']$/g, '').trim();
+        if (clean && clean !== 'None') {
+          formatted += `${metaEmojis[Math.min(i, metaEmojis.length - 1)]} ${clean}\n\n`;
         }
+      });
+
+      // 💬 comment — always the last segment; skip filler/auto boosts
+      const cleanComment = commentInfo
+        .replace(/^["']|["']$/g, '')
+        .replace(/sent from v4vmusic\.com.*$/, '')
+        .trim();
+      const lc = cleanComment.toLowerCase();
+      if (cleanComment && lc !== 'none' && lc !== 'no message' && !lc.startsWith('auto boost')) {
+        formatted += `💬 ${cleanComment}\n\n`;
       }
 
       // Add V4V info
