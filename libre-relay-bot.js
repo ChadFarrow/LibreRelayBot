@@ -5,6 +5,7 @@ import { finalizeEvent, nip19 } from 'nostr-tools';
 import { Relay } from 'nostr-tools/relay';
 import { logger } from './lib/logger.js';
 import { IRCClient } from './lib/irc-client.js';
+import { podcastTagsForMessage } from './podcast-tags.js';
 
 // Configure environment variables
 dotenv.config();
@@ -355,7 +356,12 @@ class LibreRelayBotBridge {
       // Format the message with V4V layout
       const formattedMessage = this._formatV4VMessage(sanitizedMessage);
 
-      const result = await this.nostrClient.publishMessage(formattedMessage);
+      // NIP-73 feed identifier, from the raw pipe-delimited line rather than the
+      // formatted one -- formatting drops the field boundaries the show name sits
+      // between. Returns [] on anything doubtful.
+      const tags = await podcastTagsForMessage(sanitizedMessage, { logger });
+
+      const result = await this.nostrClient.publishMessage(formattedMessage, tags);
       
       if (result.success) {
         this.stats.successfulPosts++;
