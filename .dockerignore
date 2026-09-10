@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+*.log
+*.log.[0-9]
+logs/
+ecosystem.config.cjs
+*.md
