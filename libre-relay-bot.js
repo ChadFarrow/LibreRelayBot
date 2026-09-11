@@ -279,6 +279,22 @@ class LibreRelayBotBridge {
       return;
     }
 
+    // ...and only in the channel this bot actually watches.
+    //
+    // Going through the shared ZNC, channel membership belongs to the ZNC *user*,
+    // not to each attached client: every channel the bouncer joined is fanned out
+    // to all three bots regardless of what any of them JOINed. So IRC_CHANNEL no
+    // longer scopes what we receive and `to` is the only thing that still does.
+    // Without this check, a target-bot message in any other channel gets relayed
+    // and then tagged with channels[0] in _postToNostr -- i.e. published under a
+    // channel it was never said in. Separate connections used to make this
+    // impossible; the ZNC consolidation is what put it in reach.
+    const watching = this.config.irc.channels[0];
+    if (String(to).toLowerCase() !== String(watching).toLowerCase()) {
+      logger.debug(`Ignoring ${from} message in ${to} (watching ${watching})`);
+      return;
+    }
+
     logger.info(`📨 Message from ${from}:`, message);
     this.stats.messagesMonitored++;
     this.stats.lastActivity = new Date();
