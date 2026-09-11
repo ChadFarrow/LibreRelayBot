@@ -18,6 +18,13 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Drop root. node:20 ships a `node` user at uid 1000, matching the uid the rest of
 # this box's containers run as.
+# The app writes its log file into the working directory, but WORKDIR created
+# /app as root and COPY leaves it root-owned -- so as `node` every single log
+# line fails with EACCES and prints a caught stack trace instead. Noise that
+# buries real errors. stdout logging (what docker captures) is unaffected either
+# way; this just stops the file writes failing.
+RUN chown -R node:node /app
+
 USER node
 EXPOSE 3336
 # libre-relay-bot.js, NOT boost-after-boost.js -- that sibling script is legacy and
