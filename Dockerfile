@@ -3,7 +3,18 @@
 # Two stages so the build toolchain doesn't ship in the runtime image. The `irc`
 # package has optional native deps (iconv, node-icu-charset-detector) that need a
 # compiler to even attempt installation.
-FROM node:20-bookworm-slim AS deps
+# Node 22, not 20, and this is load-bearing rather than housekeeping.
+#
+# nostr-tools' Relay.connect() needs a WebSocket. Node only exposes a global
+# WebSocket from 21 onwards, and none of these bots depend on `ws` -- they were
+# written against the host's Node 22 and relied on the built-in. On node:20 every
+# relay connect fails instantly with no DNS or network involved: the bot reads
+# the IRC line correctly, resolves the podcast GUID, then logs
+# "Published to 0/5 relays" and drops the boost. Observed on the VPS 2026-09-11.
+#
+# The alternative is adding `ws` and calling useWebSocketImplementation(). Matching
+# the Node the code already runs on in production is the smaller change.
+FROM node:22-bookworm-slim AS deps
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential python3 ca-certificates \
@@ -11,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
-FROM node:20-bookworm-slim
+FROM node:22-bookworm-slim
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
