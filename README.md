@@ -1,5 +1,10 @@
 # LibreRelayBot - IRC to Nostr Bridge
 
+> **Archived 2026-09-13 — this code moved.** It now lives in
+> [ChadFarrow/thelounge-candr](https://github.com/ChadFarrow/thelounge-candr) under
+> `bots/src/libre-relay-bot`, and is built and deployed from there. Make changes there, not here.
+> This repository is kept read-only for its history.
+
 LibreRelayBot monitors messages from the LibreRelayBot in the #SirLibre IRC channel and forwards them to Nostr.
 
 ## Features
