@@ -5,7 +5,9 @@ import { finalizeEvent, nip19 } from 'nostr-tools';
 import { Relay } from 'nostr-tools/relay';
 import { logger } from './lib/logger.js';
 import { IRCClient } from './lib/irc-client.js';
-import { podcastTagsForMessage } from './podcast-tags.js';
+import { podcastTagsForMessage, startsBoostLine } from './podcast-tags.js';
+import { MessageAssembler } from './lib/message-assembler.js';
+import { resolveNpubNames } from './lib/npub-names.js';
 
 // Configure environment variables
 dotenv.config();
@@ -32,7 +34,12 @@ class Config {
     this.app = {
       port: this.parsePort(process.env.PORT) || 3336,
       testMode: process.env.TEST_MODE === 'true',
-      targetBot: process.env.TARGET_BOT || 'LibreRelayBot'
+      targetBot: process.env.TARGET_BOT || 'LibreRelayBot',
+      // A payer's app stores their mentions as keys, so a boost comment says
+      // nostr:npub1… where they typed a name. Off by `false` only; the note reads
+      // better with names and falls back to the npub. See lib/npub-names.js.
+      resolveNpubs: process.env.RESOLVE_NPUB_NAMES !== 'false',
+      npubTimeoutMs: Number(process.env.NPUB_RESOLVE_TIMEOUT_MS) || 4000
     };
   }
 
@@ -165,6 +172,16 @@ class LibreRelayBotBridge {
     this.ircClient = null;
     this.nostrClient = null;
     this.rateLimiter = Security.createRateLimiter(5, 60000);
+    // One boost, one note. IRC cuts a long boost across several lines and each one
+    // used to become its own permanent Nostr note -- and a fragment with no ` | `
+    // in it falls straight through _formatV4VMessage's `parts.length < 2` branch
+    // and publishes as raw text. See lib/message-assembler.js.
+    this.assembler = new MessageAssembler({
+      isStart: (line) => startsBoostLine(line),
+      windowMs: Number(process.env.IRC_JOIN_WINDOW_MS) || undefined,
+      logger,
+      onMessage: (message) => this._handleAssembledMessage(message)
+    });
     this._setupGlobalErrorHandlers();
   }
 
@@ -299,13 +316,21 @@ class LibreRelayBotBridge {
     this.stats.messagesMonitored++;
     this.stats.lastActivity = new Date();
 
-    // Rate limiting
+    // Buffered, not posted. A long boost arrives as several lines and only becomes
+    // a message once the assembler decides it is complete.
+    this.assembler.push(message);
+  }
+
+  async _handleAssembledMessage(message) {
+    // Rate limit the assembled boost, never the fragment. At 5 per 60s a
+    // three-line boost spent three of the five, so a busy show dropped boosts --
+    // and dropping a MIDDLE fragment published a note with a hole in it.
+    const from = this.config.app.targetBot;
     if (!this.rateLimiter(from)) {
       logger.warn(`⚠️ Rate limit exceeded for ${from}`);
       return;
     }
 
-    // Post to Nostr
     if (this.nostrClient) {
       await this._postToNostr(message);
     }
@@ -369,8 +394,19 @@ class LibreRelayBotBridge {
         return;
       }
 
+      // Names where the payer's app left keys. The tags below still read the
+      // untouched line: substitution never crosses a ` | ` boundary, but the feed
+      // lookup has no reason to see a different string than it always has.
+      const namedMessage = this.config.app.resolveNpubs
+        ? Security.sanitizeMessage(await resolveNpubNames(message, {
+            relays: this.config.nostr.relays,
+            timeoutMs: this.config.app.npubTimeoutMs,
+            logger
+          }))
+        : sanitizedMessage;
+
       // Format the message with V4V layout
-      const formattedMessage = this._formatV4VMessage(sanitizedMessage);
+      const formattedMessage = this._formatV4VMessage(namedMessage);
 
       // NIP-73 feed identifier, from the raw pipe-delimited line rather than the
       // formatted one -- formatting drops the field boundaries the show name sits
@@ -420,6 +456,7 @@ class LibreRelayBotBridge {
       const uptimeSeconds = Math.floor((Date.now() - this.stats.startTime) / 1000);
       res.json({
         ...this.stats,
+        ...this.assembler.getStats(),
         uptime: uptimeSeconds,
         irc: {
           connected: this.ircClient?.isConnected || false,
@@ -444,7 +481,13 @@ class LibreRelayBotBridge {
 
   _gracefulShutdown(exitCode = 0) {
     logger.info('🛑 Shutting down gracefully...');
-    
+
+    // Publish a half-assembled boost rather than losing it.
+    if (this.assembler) {
+      this.assembler.flush('shutdown');
+      this.assembler.stop();
+    }
+
     if (this.ircClient) {
       try {
         this.ircClient.disconnect();
