@@ -65,6 +65,27 @@ export function extractShowName(message) {
   return candidateShowNames(message)[0] ?? null;
 }
 
+/**
+ * Does this IRC line BEGIN a boost, rather than continue one?
+ *
+ * IRC has no long messages: the relay bot cuts a long boost across several lines
+ * and only the first carries the pipe-delimited structure -- an amount in the
+ * leading field, then the metadata fields. A continuation is the tail of the
+ * comment, and usually has no ` | ` in it at all.
+ *
+ * This is the assembler's start predicate (lib/message-assembler.js). Deliberately
+ * strict: a line it rejects is published on its own, which is what this bot did
+ * with every line before, so a miss costs nothing new -- where a false positive
+ * would glue two unrelated boosts into one note.
+ */
+export function startsBoostLine(message) {
+  if (typeof message !== 'string') return false;
+  if (!message.includes(' | ')) return false;
+  // Leading non-word characters only, so an emoji prefix is fine but a sentence
+  // that happens to mention sats is not.
+  return /^[^\w]*\d[\d,]*\s+sats?\b/i.test(message.split(' | ')[0]);
+}
+
 export function buildPodcastTags(feedGuid) {
   if (!feedGuid) return [];
   return [

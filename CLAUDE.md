@@ -26,10 +26,54 @@ Dependencies: `nostr-tools ^2.7.0`, `irc ^0.5.2`, `express`, `dotenv`.
 
 ## Data Flow
 1. Connect to the `znc` container at `znc:6667` (plaintext, bridge network only) → ZNC relays to irc.zeronode.net, joins `#SirLibre`.
-2. `_handleIRCMessage` filters to messages `from === TARGET_BOT` ("LibreRelayBot"), applies a rate limit (5 msgs / 60s per sender).
-3. `Security.sanitizeMessage` strips control characters (no length cap).
-4. `_formatV4VMessage` parses the pipe-delimited boost line into a formatted note.
-5. `NostrClient.publishMessage` signs a `kind:1` event and publishes to all relays.
+2. `_handleIRCMessage` filters to messages `from === TARGET_BOT` ("LibreRelayBot") and hands each line to the assembler.
+3. `MessageAssembler` rejoins the lines of one boost (see below) and emits one message; the rate limit (5 / 60s) applies to that, not to each line.
+4. `lib/npub-names.js` replaces `nostr:npub1…` with the name behind it.
+5. `Security.sanitizeMessage` strips control characters (no length cap).
+6. `_formatV4VMessage` parses the pipe-delimited boost line into a formatted note.
+7. `NostrClient.publishMessage` signs a `kind:1` event and publishes to all relays.
+
+## Rejoining split IRC lines (`lib/message-assembler.js`)
+
+IRC has no long messages: the relay bot emits a long boost as two or three lines,
+and each one used to become its own Nostr note. The tail of a boost has no ` | ` in
+it at all, so it fell through `_formatV4VMessage`'s `parts.length < 2` branch and
+published as raw text with a `#V4V` footer stapled on.
+
+`startsBoostLine()` in `podcast-tags.js` decides which lines begin a boost — a
+` | ` present and an amount in the leading field. Anything else continues the boost
+in progress, or, if there is none, publishes on its own exactly as before. So a line
+the predicate does not recognise costs nothing new, where a false positive would
+glue two boosts into one note. A message closes when the next one starts, after
+`IRC_JOIN_WINDOW_MS` (default 2500) of silence, or at shutdown.
+
+**Fragments are joined with no separator, before sanitizing.** The cut is a
+character count, not a word boundary — in #BowlAfterBowl one landed mid-npub, and
+the two halves only decode because nothing was inserted between them. A cut that
+does land on a space leaves that space at the end of a fragment, which
+`sanitizeMessage`'s `.trim()` would eat if it ran first.
+
+`lib/message-assembler.js` is **byte-identical to BoostAfterBoost's copy** — the two
+readers have drifted once already, and a future `irc-core` has to merge them. Keep
+it that way; the per-bot part is the `isStart` predicate, which lives here.
+
+## Names, not npubs (`lib/npub-names.js`)
+
+A payer writes "@someone" in their app and the app stores a key, so the boost
+comment says `nostr:npub1…`. Some clients resolve that back to a name and some do
+not, and none can resolve a bare `npub1…` with no scheme. The bot looks it up
+itself (`kind:0` from the relays it already publishes to) and writes the name.
+
+The match counts to 58 rather than scanning a character class: an npub is `npub1`
+plus exactly 58 bech32 characters, and boostagram text runs mentions together with
+what follows, so a greedy match swallows the `n` of the next `nostr:`.
+
+Every failure is a no-op — a slow relay, a nameless profile, a key that fails its
+checksum all leave the npub where it was. Names are cached (6h hit, 15min miss) and
+capped at 64 characters with control characters stripped: it is a stranger's
+profile field. No `p` tag is emitted, deliberately — the comment is payer-written,
+so a `p` would let anyone put this bot's signed note into a stranger's mentions.
+`RESOLVE_NPUB_NAMES=false` publishes the raw key.
 
 ## Message Formatting (`_formatV4VMessage`)
 
